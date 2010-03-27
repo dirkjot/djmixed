@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Command  Name="DJMIXED"  Language="Python" 
+    xmlns="http://xml.spss.com/spss/extension" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://xml.spss.com/spss/extension http://xml.spss.com/spss/extension/extension-1.0.xsd"> 
+
+    <Subcommand Name="STARTMODEL">
+       <Parameter Name="NAME" ParameterType="QuotedString" />
+    </Subcommand>
+
+    <Subcommand Name="STOPMODEL" >
+       <Parameter Name="NAME" ParameterType="QuotedString" />
+       <Parameter Name="LAST" ParameterType="LeadingToken" />
+    </Subcommand>
+
+    <Subcommand Name="COMPAREMODELS">
+       <Parameter Name="NAME1" ParameterType="QuotedString" />
+       <Parameter Name="NAME2" ParameterType="QuotedString" />
+       <Parameter Name="TYPE" ParameterType="Keyword">
+           <EnumValue Name="FIXED" />
+           <EnumValue Name="RANDOM" />
+           </Parameter>
+    </Subcommand>
+
+    <Subcommand Name="MODELSUMMARY">
+       <Parameter Name="NAME" ParameterType="QuotedString" />
+    </Subcommand>
+
+    <Subcommand Name="MIXEDMODEL">
+       <Parameter Name="DV" ParameterType="VariableName" />
+       <Parameter Name="PREDICTORS" ParameterType="TokenList" />
+       <Parameter Name="PPS" ParameterType="VariableName" />
+       <Parameter Name="ITEMS" ParameterType="VariableName" />
+       <Parameter Name="NAME" ParameterType="QuotedString" />
+       <Parameter Name="OUTPUT" ParameterType="Keyword">
+           <EnumValue Name="NONE" />
+           <EnumValue Name="SPLIT" />
+           <EnumValue Name="FULL" />
+           </Parameter>
+       <Parameter Name="POSTHOC" ParameterType="VariableName" />
+       <Parameter Name="CONTRAST" ParameterType="TokenList" />
+       <Parameter Name="PLOT" ParameterType="Keyword">
+           <EnumValue Name="RESIDUALS" />
+           </Parameter>
+    </Subcommand>
+
+</Command>
