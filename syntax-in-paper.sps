@@ -96,11 +96,11 @@ DJMIXED /MIXEDMODEL
               PPS = Participant
               ITEMS = Word
               NAME = 'interaction' 
-              PLOT = residual 
+              PLOT = residuals 
               OUTPUT = full .
 
 
-compute logrt = ln(rt) .
+compute logrt = ln(rt-100) .
 execute.
 DJMIXED /MIXEDMODEL   
               DV = logrt 
@@ -108,7 +108,7 @@ DJMIXED /MIXEDMODEL
               PPS = Participant
               ITEMS = Word
               NAME = 'log main effects' 
-              PLOT = residual 
+              PLOT = residuals 
               OUTPUT = full .
 DJMIXED /MIXEDMODEL   
               DV = logrt 
@@ -116,7 +116,7 @@ DJMIXED /MIXEDMODEL
               PPS = Participant
               ITEMS = Word
               NAME = 'log interaction' 
-              PLOT = residual 
+              PLOT = residuals 
               OUTPUT = full  .
 
 DJMIXED /COMPAREMODELS
@@ -154,8 +154,8 @@ DJMIXED /comparemodels NAME1='interaction' NAME2='model4' type=random  .
 * alternatively, you can call via python .
 begin program python.
 import djmixed
-djmixed.mixedmodel(dv='rt', predictors='priming morph', pps='participant', items='word', NAME='m1' )
-djmixed.modelsummary('interaction')
+djmixed.mixedmodel(dv='rt', predictors='priming morph', pps='participant', items='word', NAME='main effects' )
+djmixed.modelsummary('main effects')
 djmixed.comparemodels('main effects', 'interaction')
 end program.
 
@@ -168,6 +168,6 @@ djmixed.Runpy('MIXEDMODEL',
               items = 'Word',
               name = 'interaction' , output='full' )
 djmixed.Runpy('MODELSUMMARY', name='interaction' )
-end python.
+end program.
 
 
