@@ -7,7 +7,7 @@
 * open the data file tw-set1d-spss.sav, this may be in a different place for you .
 * this file contains 2004 cases.
 get file='C:\flash2\schrijf\twicerandom\data1\tw-set1d-spss.sav'.
-get file='e:\flash\schrijf\twicerandom\data1\tw-set1d-spss.sav'.
+* get file='e:\flash\schrijf\twicerandom\data1\tw-set1d-spss.sav'.
 dataset name tw.
 
 * optional 

@@ -21,11 +21,14 @@
 # - the program should check whether numeric predictors are used, as string preds are possible in MIXED but not
 #   supported here (yet)
 # - unify treatment of spss errors and warnings
+# - check equality of residual variances with a levene or so.
+# - interaction plots?
 # 
 
 
 import spss, spssaux, extension
-import scipy.stats
+#import scipy.stats
+import djdistributions
 import textwrap
 import random, re
 from numpy import bool_ as numpybool_
@@ -427,7 +430,7 @@ def comparemodels(name1, name2):
 
     chisqvalue = mc.fit1 - mc.fit2
     chisqdf = mc.npar2 - mc.npar1
-    chisqpval = 1 - scipy.stats.chi2.cdf(chisqvalue, chisqdf)
+    chisqpval = djdistributions.pchisq(chisqvalue, chisqdf, lowertail=False)
     # if chisqpval < 0.05:
     #   bestmodel = "Model 2"
     # else:
@@ -531,8 +534,8 @@ def comparerandommodels(name1, name2):
     mc.make_numeric()
 
     chisqvalue = mc.fit1 - mc.fit2
-    chisqpval1 = 1 - scipy.stats.chi2.cdf(chisqvalue, mc.nrandom1)
-    chisqpval2 = 1 - scipy.stats.chi2.cdf(chisqvalue, mc.nrandom2)
+    chisqpval1 = djdistributions.pchisq(chisqvalue, mc.nrandom1, lowertail=False)
+    chisqpval2 = djdistributions.pchisq(chisqvalue, mc.nrandom2, lowertail=False)
     chisqpval = 0.5* chisqpval1 + 0.5* chisqpval2
     chisqdf = str(mc.nrandom1) + "," + str(mc.nrandom2)
 
@@ -1075,18 +1078,6 @@ def remove_all_oxml():
  
   
   
-"""
-
->>> scipy.stats.chi2.cdf(1,1)
-array(0.68268949213708596)
->>> scipy.stats.chi2.cdf(1,2)
-array(0.39346934028736652)
->>> scipy.stats.chi2.cdf(1,3)
-array(0.19874804309879915)
-# these correspond with pchisq(1,1:3) in R
-
-"""
-
 
 
 def Run(args):
