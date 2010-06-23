@@ -41,6 +41,7 @@
        <Parameter Name="CONTRAST" ParameterType="TokenList" />
        <Parameter Name="PLOT" ParameterType="Keyword">
            <EnumValue Name="RESIDUALS" />
+	   <EnumValue Name="EQUALVARIANCE" />
            </Parameter>
     </Subcommand>
 

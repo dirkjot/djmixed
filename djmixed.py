@@ -1,5 +1,5 @@
 # djmixed.py,  dirk p. janssen spring 2009
-# $Id: djmixed.py,v 1.10 2010/03/20 02:03:58 dpj Exp dpj $
+# $Id$
 #
 # windows users: either install this in c:\Python25\Lib\site-packages
 # or set PYTHONPATH to the directory where this lives.
@@ -26,14 +26,18 @@
 # 
 
 
-import spss, spssaux, extension
+# TODO check whether to use updated versions of extension for later spss versions,
+# or shall i simply not bother?
+
+import spss, spssaux, extension16
 #import scipy.stats
-import djdistributions
+import djstats
 import textwrap
 import random, re
-from numpy import bool_ as numpybool_
+#from numpy import bool_ as numpybool_
+# this is annoying but also unnecessary, do not require types!
 
-version = "$Revision: 1.10 $ at $Date: 2010/03/20 02:03:58 $"
+version = "$Revision$ at $Date$ - 220610b"
 version = version.replace('$','')
 print """Importing DJMIXED by Dirk P. Janssen, %s """ % version
 
@@ -42,7 +46,7 @@ print """Importing DJMIXED by Dirk P. Janssen, %s """ % version
 # globals
 modelnumber = 1
 currentmodel = None
-# each model has an OMS handle, which is identical to its name
+# each model has an OMS handle, which is stored in this set
 modelhandles = set()  
 pluginversion = spss.GetDefaultPlugInVersion()
 
@@ -430,7 +434,7 @@ def comparemodels(name1, name2):
 
     chisqvalue = mc.fit1 - mc.fit2
     chisqdf = mc.npar2 - mc.npar1
-    chisqpval = djdistributions.pchisq(chisqvalue, chisqdf, lowertail=False)
+    chisqpval = djstats.pchisq(chisqvalue, chisqdf, lowertail=False)
     # if chisqpval < 0.05:
     #   bestmodel = "Model 2"
     # else:
@@ -461,12 +465,15 @@ def comparemodels(name1, name2):
 
     alpha = 0.05
     def bestmodel(comp):
-      if isinstance(comp, (bool, numpybool_)):
-        # SHOOT numpy, it has its own bool variant
-        if comp:
-          return 'A'
-        else:
-          return 'B'
+      #if isinstance(comp, bool):
+      #if isinstance(comp, (bool, numpybool_)):
+      # SHOOT numpy, it has its own bool variant
+      #
+      # Lesson: do not check for type
+      if comp == True:
+        return 'A'
+      elif comp == False:
+        return 'B'
       else:
         return comp  
 
@@ -534,8 +541,8 @@ def comparerandommodels(name1, name2):
     mc.make_numeric()
 
     chisqvalue = mc.fit1 - mc.fit2
-    chisqpval1 = djdistributions.pchisq(chisqvalue, mc.nrandom1, lowertail=False)
-    chisqpval2 = djdistributions.pchisq(chisqvalue, mc.nrandom2, lowertail=False)
+    chisqpval1 = djstats.pchisq(chisqvalue, mc.nrandom1, lowertail=False)
+    chisqpval2 = djstats.pchisq(chisqvalue, mc.nrandom2, lowertail=False)
     chisqpval = 0.5* chisqpval1 + 0.5* chisqpval2
     chisqdf = str(mc.nrandom1) + "," + str(mc.nrandom2)
 
@@ -587,7 +594,7 @@ def comparerandommodels(name1, name2):
 def explode_interactions(predictors):
   """Scan the predictor (string) and write out an R-style interaction
   with all main effects syntax for each shorthand interaction, but use
-  SPSS syntax in the product: 'A*B C' becomes 'A B A*B C'"""
+  SPSS syntax in the product: 'A**B C' becomes 'A B A*B C'"""
 
   pass
   # MAYBE, this would be a nice addition
@@ -596,20 +603,36 @@ def explode_interactions(predictors):
 def mixedmodel_spssparse(argstring):
   """helper for mixedmodel_spss, takes large string with all arguments
   (spss style) and returns a dictionary"""
-  
+
+  argstring = argstring.strip()
   validarguments = "dv predictors pps items stepwise name output plot".split()
+  quotes = "'\""
   res = dict()
   argstring = argstring.replace(',', ' ').replace('/', ' ').replace('=', ' = ')
   arglist = argstring.split()
+  print "ARGLIST",arglist
+  # remove spss syntax remainders if present
+  if arglist[0].upper()=='DJMIXED':
+    del arglist[0]
+  if arglist[0].upper()=='MIXEDMODEL':
+    del arglist[0]
+  if arglist[-1]==".":
+    del arglist[-1]
+  # parse it
   equalsigns = [ i for (i,x) in enumerate(arglist) if x=='=' ]
-  varlist = [ arglist[i-1] for i in equalsigns ]
-  firstvalues = [ i+1 for i in equalsigns ]
-  lastvalues = [ i-1 for i in equalsigns[1:] ] + [len(arglist)]
-  valuelist = [ arglist[f:l] for (f,l) in zip(firstvalues, lastvalues) ]
+  varlist = [ arglist[i-1].lower() for i in equalsigns ]
+  firstvaluesindex = [ i+1 for i in equalsigns ]
+  lastvaluesindex = [ i-1 for i in equalsigns[1:] ] + [len(arglist)]
+  valuelist = [ arglist[f:l] for (f,l) in zip(firstvaluesindex, lastvaluesindex) ]
   for var, val in zip(varlist, valuelist):
     if var not in validarguments:
       raise DjmixedFatal("Argument not recognised: %s " % var)
-    res[var] = val if len(val)>1 else val[0]
+    if val[0][0]==val[-1][-1] and val[0][0] in quotes:
+      val[0] = val[0][1:]
+      val[-1] = val[-1][:-1]
+    if len(val)==1:
+      val = val[0]
+    res[var] = val 
   return res
   
 
@@ -620,7 +643,7 @@ def mixedmodel_spss(argstring):
   The syntax is very flexible: Commas and slashes are removed, spaces
   are not significant, and the equal signs are used to parse the
   input.  Potential valid inputs include: 
-   1. dv = rt, predictors=a b,   pps=sub 
+   1. DV = rt, PREDICTORS=a b,   PPS=sub 
    2. /dv = rt /predictors=a b /pps=sub
    3. dv=rt  predictors=a,b  pps=sub      """
   #
@@ -652,6 +675,31 @@ def reparsepredictors(predictors):
 
 
 
+def createdesignvariable(mainpredictors):
+  """Return spss syntax that sets up a `designcell' variable, which
+  has a different (consequetive) value for each cell of the design, as
+  defined by crossing all main predictors.  Predictors can be numeric
+  or string."""
+
+  mainpredictors = mainpredictors.split() # it was a spss style space separated list
+  res = list()
+  for p in mainpredictors:
+    vardict = spssaux.VariableDict(pattern=p+"$") # necessary as the API is retardedly case sensitive
+    if vardict.numvars != 1:
+      raise DjmixedFatal("Looked for predictor '%s' but found %d matches. " %(p, vardict.numvars))
+    if vardict[0].VariableType==0: # numeric
+      format = vardict[0].VariableFormat
+      res.append("rtrim(ltrim(string(%s, %s)))" % (p, format))
+    else:
+      res.append("rtrim(ltrim(%s))" % p)
+  res = "compute designcell=concat(" + ','.join(res) + ").\nexecute."
+  vardict = spssaux.VariableDict(pattern="designcell$")
+  if vardict.numvars==0:
+    res = "string designcell (A64).\n" + res
+  elif vardict[0].VariableType != 64:
+    res = "delete variables designcell.\nstring designcell (A64).\n" + res
+  return res
+  
 def splitsublist(src, sep):
   """divide list items from src into sublist at items that equal sep"""
   res = list()
@@ -711,8 +759,7 @@ def mixedmodel(dv, predictors=None, pps=None, items=None,
     msg = " /TEST 'contrasts on %s' " % varname  + ';'.join(msg)
     cmd.append(msg)
   if plot:
-    # only residuals an option for now
-    precmd = list()
+    # only residuals and equalvariance are options for now
     varnames = getallvarnames(strmethod='lower')
     delvars = [ x for x in ('predicted','residual') if x in varnames ]
     if delvars:
@@ -726,11 +773,32 @@ HCONVERGE(0, ABSOLUTE) LCONVERGE(0, ABSOLUTE) PCONVERGE(0.000001, ABSOLUTE) . ""
 
   if plot:
     if 'zresidual' in varnames:
-      cmd.append("DELETE VARIABLES Zresidual .")
+      precmd.append("DELETE VARIABLES Zresidual .")
     cmd.append(cmdsyntax(""" 
-    DESCRIPTIVES VARIABLES=residual  (Zresidual)  /SAVE .
-    EXAMINE VARIABLES=residual /PLOT =    histogram npplot .
-    GRAPH  /SCATTERPLOT(bivar)=predicted WITH Zresidual .    """))
+      DESCRIPTIVES VARIABLES=residual  (Zresidual)  /SAVE ."""))
+    if 'residuals' in plot:
+      cmd.append(cmdsyntax(""" 
+        EXAMINE VARIABLES=residual /PLOT =    histogram npplot .
+        GRAPH  /SCATTERPLOT(bivar)=predicted WITH Zresidual .    """))
+    if 'equalvariance' in plot:
+      precmd.append(createdesignvariable(mainpredictors))
+      cmd.append(cmdsyntax(""" 
+        GGRAPH 
+          /GRAPHDATASET NAME="graphdataset" VARIABLES=Zresidual designcell
+            MISSING=LISTWISE REPORTMISSING=NO 
+          /GRAPHSPEC SOURCE=INLINE. 
+        BEGIN GPL 
+          SOURCE: s=userSource(id("graphdataset")) 
+          DATA: Zresidual=col(source(s), name("Zresidual")) 
+          DATA: designcell=col(source(s), name("designcell"), unit.category()) 
+          GUIDE: axis(dim(1), label("Zscore of Residuals")) 
+          GUIDE: axis(dim(2), label("Frequency")) 
+          GUIDE: legend(aesthetic(aesthetic.color.interior), label("designcell")) 
+          ELEMENT: line(position(summary.count(bin.rect(Zresidual))),
+            color.interior(designcell), missing.wings()) 
+        END GPL.
+        """)) # line -> area.stack for a pretty plot which is not as useful
+
 
   cmd = precmd + cmd
   cmd = "\n".join(cmd)
@@ -1090,16 +1158,16 @@ def Run(args):
   defaults = dict()
 
   # A startmodel
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="STARTMODEL", kwd="NAME", 
           var="name", islist = False, ktype="literal")]
 
   # B stopmodel, with last as LeadingToken, doesn't work 
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="STOPMODEL", kwd="NAME", 
           var="name", islist = False, ktype="literal")]
   
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="STOPMODEL", kwd="LAST", 
           var="stoplast", islist = False, ktype="bool")]
   defaults['STOPMODEL','stoplast']=False 
@@ -1110,15 +1178,15 @@ def Run(args):
   ## TODO rename this to compare, have this output 2 columns, one with values
   ## for m1 one for m2.  that way we can extend this to multiple comparisons and 
   ## it will look better.  actually, have models in rows instead.
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="COMPAREMODELS", kwd="NAME1", 
           var="compm1", islist = False, ktype="literal")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="COMPAREMODELS", kwd="NAME2", 
           var="compm2", islist = False, ktype="literal")]
 
   # C optional
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="COMPAREMODELS", kwd="TYPE", 
           var="comptype", islist = False, ktype="literal", 
           vallist=['fixed','random'])]
@@ -1126,43 +1194,43 @@ def Run(args):
 
 
   # modelsummary
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc='MODELSUMMARY', kwd="NAME",
           var="name", islist=False, ktype="literal") ]
 
   # D mixedmodel
   # def mixedmodel(dv, predictors=None, pps=None, items=None, name=None):
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="DV", 
           var="dv", islist = False, ktype="varname")]
   defaults['MIXDEDMODEL','DV']=None
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="PREDICTORS", 
           var="predictors", islist = True, ktype="literal")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="PPS", 
           var="pps", islist = False, ktype="varname")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="ITEMS", 
           var="items", islist = False, ktype="varname")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="NAME", 
           var="name", islist = False, ktype="literal")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="OUTPUT", 
           var="output", islist = False, ktype="literal",
           vallist=['none','split','full'] )]
   defaults['MIXDEDMODEL','OUTPUT']='split'
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="POSTHOC", 
           var="posthoc", islist = True, ktype="existingvarlist")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="CONTRAST", 
           var="contrast", islist = True, ktype="literal")]
-  templates +=  [extension.Template(
+  templates +=  [extension16.Template(
           subc="MIXEDMODEL", kwd="PLOT", 
-          var="plot", islist = False, ktype="literal",
-          vallist=['residuals'] )]
+          var="plot", islist = True, ktype="literal",
+          vallist=['residuals' 'equalvariance'] )]
 
   cmdname = args.keys()[0]
   assert(cmdname == 'DJMIXED')
@@ -1177,7 +1245,7 @@ def Run(args):
                  (len(subcommands), subcommands) )
   subcommand = subcommands[0]
 
-  declaration = extension.Syntax(templates)
+  declaration = extension16.Syntax(templates)
   declaration.parsecmd(args[cmdname], vardict = spssaux.VariableDict())
   parseddict = declaration.parsedparams
 
@@ -1222,7 +1290,8 @@ def Runpy(subcommand, **argdict):
       DjmixedFatal("Unrecognised subcommmand '%s'" % subcommand )
   except DjmixedFatal, e:
     print "=================================================================="
-    print "An error occurred in DJMIXED:"
+    print "An error occurred in DJMIXED"
+    print "[Version information: %s]" % version
     print e
     if DEBUG:
       print "------------------------------------------------------------------"
