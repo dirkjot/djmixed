@@ -96,7 +96,7 @@ DJMIXED /MIXEDMODEL
               PPS = Participant
               ITEMS = Word
               NAME = 'interaction' 
-              PLOT = residuals 
+              PLOT = residuals equalvariance 
               OUTPUT = full .
 
 

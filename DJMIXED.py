@@ -1,5 +1,5 @@
 # djmixed.py,  dirk p. janssen spring 2009
-# $Id$
+# $Id: djmixed.py 41 2010-06-23 13:11:12Z dirk.janssen@gmail.com $
 #
 # windows users: either install this in c:\Python25\Lib\site-packages
 # or set PYTHONPATH to the directory where this lives.
@@ -37,7 +37,7 @@ import random, re
 #from numpy import bool_ as numpybool_
 # this is annoying but also unnecessary, do not require types!
 
-version = "$Revision$ at $Date$ - 220610b"
+version = "$Revision: 41 $ at $Date$ - 220610c"
 version = version.replace('$','')
 print """Importing DJMIXED by Dirk P. Janssen, %s """ % version
 
@@ -599,6 +599,25 @@ def explode_interactions(predictors):
   pass
   # MAYBE, this would be a nice addition
 
+def fullfactorial(preds):
+  """return a list with all n-way interactions added, input and output
+  are space separated strings"""
+  def innerff(plist):
+    if len(plist)==1:
+      return plist
+    else:
+      assert(len(plist)>0)
+      restff = innerff(plist[1:])
+      me = plist[0]
+      res = [me]
+      for p in restff:
+        res.append(p)
+        res.append(me+"*"+p)
+      return res
+  predlist = preds.split()
+  return ' '.join(innerff(predlist))
+
+      
 
 def mixedmodel_spssparse(argstring):
   """helper for mixedmodel_spss, takes large string with all arguments
@@ -717,7 +736,7 @@ def splitsublist(src, sep):
 
 def mixedmodel(dv, predictors=None, pps=None, items=None, 
                stepwise=None, name=None, output='SPLIT', posthoc=None,
-               contrast=None, plot=None):
+               contrast=None, plot=None, modeltype=None):
   """Construct spss mixed model syntax from arguments, pythonic syntax
 
   The list of predictors is (changed) either a string or a list of
@@ -731,6 +750,8 @@ def mixedmodel(dv, predictors=None, pps=None, items=None,
   #  mixedmodelstepwise(dv, predictors, pps, items, stepwise, name, output)
 
   output = output.lower()
+  if plot:
+    plot = [ x.lower() for x in plot ]
   cmd = list(); precmd = list()
   cmd.append("MIXED %s" % dv )
   if predictors and predictors!='None':
@@ -738,6 +759,8 @@ def mixedmodel(dv, predictors=None, pps=None, items=None,
       mainpredictors = predictors
     else:
       predictors, mainpredictors = reparsepredictors(predictors)
+    if modeltype and modeltype.lower()=="fullfactorial":
+      predictors = fullfactorial(mainpredictors)
     cmd.append(" BY " + mainpredictors) 
   else:
     """no predictors mentioned"""
@@ -1231,6 +1254,10 @@ def Run(args):
           subc="MIXEDMODEL", kwd="PLOT", 
           var="plot", islist = True, ktype="literal",
           vallist=['residuals' 'equalvariance'] )]
+  templates +=  [extension16.Template(
+          subc="MIXEDMODEL", kwd="MODELTYPE", 
+          var="modeltype", islist = False, ktype="literal",
+          vallist=['fullfactorial','maineffects'] )]
 
   cmdname = args.keys()[0]
   assert(cmdname == 'DJMIXED')
@@ -1254,8 +1281,8 @@ def Run(args):
     if subc == subcommand and not keyword in parseddict:
       parseddict[keyword]=value
 
-  #print "PARSED:", parseddict
-  #print "SUBC:", subcommand
+  # print "PARSED:", parseddict
+  # print "SUBC:", subcommand
   Runpy(subcommand, **parseddict)
 
 
@@ -1278,7 +1305,7 @@ def Runpy(subcommand, **argdict):
       else:
         stopmodel()
     elif subcommand=='COMPAREMODELS': 
-      if args.comptype=='fixed':
+      if args.comptype.lower()=='fixed':
         comparemodels(args.compm1, args.compm2)
       else:
         comparerandommodels(args.compm1, args.compm2)
