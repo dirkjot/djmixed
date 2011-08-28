@@ -1,5 +1,5 @@
 # djmixed.py,  dirk p. janssen spring 2009
-# $Id: djmixed.py 41 2010-06-23 13:11:12Z dirk.janssen@gmail.com $
+# $Id$
 #
 # windows users: either install this in c:\Python25\Lib\site-packages
 # or set PYTHONPATH to the directory where this lives.
