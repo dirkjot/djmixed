@@ -9,7 +9,7 @@
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define PRODUCT_STARTMENU_REGVAL "NSIS:StartMenuDir"
 
-SetCompressor lzma
+SetCompressor /FINAL /SOLID lzma
 
 ; MUI 1.67 compatible ------
 !include "MUI.nsh"
@@ -23,6 +23,8 @@ SetCompressor lzma
 !insertmacro MUI_PAGE_WELCOME
 ; License page
 !insertmacro MUI_PAGE_LICENSE "djmixed-license.txt"
+; destination
+!insertmacro MUI_PAGE_DIRECTORY
 ; Start menu page
 var ICONS_GROUP
 !define MUI_STARTMENUPAGE_NODISABLE
@@ -49,12 +51,15 @@ var ICONS_GROUP
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "Setup-djmixed.exe"
-InstallDir "$TEMP"
+InstallDir "c:\Python26\Lib\site-packages"
+; that install dir will not work unless you move things up later, out of extensions
+InstallDirRegKey HKLM "Software\IBM\SPSS Statistics\19.0\Setup" "Directory"
+; this does not check for version 19.1 or anything
 ShowInstDetails show
 ShowUnInstDetails show
 
 Section "MainSection" SEC01
-  SetOutPath "$INSTDIR\DJMIXEDPY"
+  SetOutPath "$INSTDIR\extensions\DJMIXEDPY"
   SetOverwrite ifnewer
   File "djmixedcore.py"
   File "djstats.py"
@@ -73,29 +78,11 @@ Section "MainSection" SEC01
 SectionEnd
 
 Section "dialogs" SEC02
-  SetOutPath "$INSTDIR\ext\lib\.svn"
-  SetOverwrite try
-  File "djmixeddialog\.svn\all-wcprops"
-  File "djmixeddialog\.svn\entries"
-  SetOutPath "$INSTDIR\ext\lib\.svn\prop-base"
-  File "djmixeddialog\.svn\prop-base\djmixeddialog.properties.svn-base"
-  File "djmixeddialog\.svn\prop-base\djmixeddialog.xml.svn-base"
-  SetOutPath "$INSTDIR\ext\lib\.svn\text-base"
-  File "djmixeddialog\.svn\text-base\djmixeddialog.properties.svn-base"
-  File "djmixeddialog\.svn\text-base\djmixeddialog.xml.svn-base"
-  SetOutPath "$INSTDIR\ext\lib"
+  SetOutPath "$INSTDIR\ext\lib\djmixeddialog"
+  SetOverwrite ifnewer
   File "djmixeddialog\djmixeddialog.properties"
   File "djmixeddialog\djmixeddialog.xml"
-  SetOutPath "$INSTDIR\ext\lib\.svn"
-  File "dialog1\.svn\all-wcprops"
-  File "dialog1\.svn\entries"
-  SetOutPath "$INSTDIR\ext\lib\.svn\prop-base"
-  File "dialog1\.svn\prop-base\dialog1.properties.svn-base"
-  File "dialog1\.svn\prop-base\dialog1.xml.svn-base"
-  SetOutPath "$INSTDIR\ext\lib\.svn\text-base"
-  File "dialog1\.svn\text-base\dialog1.properties.svn-base"
-  File "dialog1\.svn\text-base\dialog1.xml.svn-base"
-  SetOutPath "$INSTDIR\ext\lib"
+  SetOutPath "$INSTDIR\ext\lib\dialog1"
   File "dialog1\dialog1.properties"
   File "dialog1\dialog1.xml"
 
@@ -121,14 +108,14 @@ Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk" "$INSTDIR\uninst.exe"
+  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk" "$INSTDIR\djmixed-uninst.exe"
   !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
 Section -Post
-  WriteUninstaller "$INSTDIR\uninst.exe"
+  WriteUninstaller "$INSTDIR\djmixed-uninst.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\djmixed-uninst.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
@@ -148,46 +135,31 @@ FunctionEnd
 Section Uninstall
   !insertmacro MUI_STARTMENU_GETFOLDER "Application" $ICONS_GROUP
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
-  Delete "$INSTDIR\uninst.exe"
+  Delete "$INSTDIR\djmixed-uninst.exe"
   Delete "$INSTDIR\extensions\DJMIXED.py"
   Delete "$INSTDIR\extensions\djmixed.xml"
-  Delete "$INSTDIR\ext\lib\dialog1.xml"
-  Delete "$INSTDIR\ext\lib\dialog1.properties"
-  Delete "$INSTDIR\ext\lib\.svn\text-base\dialog1.xml.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\text-base\dialog1.properties.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\prop-base\dialog1.xml.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\prop-base\dialog1.properties.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\entries"
-  Delete "$INSTDIR\ext\lib\.svn\all-wcprops"
-  Delete "$INSTDIR\ext\lib\djmixeddialog.xml"
-  Delete "$INSTDIR\ext\lib\djmixeddialog.properties"
-  Delete "$INSTDIR\ext\lib\.svn\text-base\djmixeddialog.xml.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\text-base\djmixeddialog.properties.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\prop-base\djmixeddialog.xml.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\prop-base\djmixeddialog.properties.svn-base"
-  Delete "$INSTDIR\ext\lib\.svn\entries"
-  Delete "$INSTDIR\ext\lib\.svn\all-wcprops"
-  Delete "$INSTDIR\DJMIXEDPY\djmixedcomparison.spd"
-  Delete "$INSTDIR\DJMIXEDPY\djmixeddialog.spd"
-  Delete "$INSTDIR\DJMIXEDPY\_cephes.pyd"
-  Delete "$INSTDIR\DJMIXEDPY\__init__.py"
-  Delete "$INSTDIR\DJMIXEDPY\tw-set1d-spss.sav"
-  Delete "$INSTDIR\DJMIXEDPY\syntax-in-paper.sps"
-  Delete "$INSTDIR\DJMIXEDPY\README.txt"
-  Delete "$INSTDIR\DJMIXEDPY\extension16.py"
-  Delete "$INSTDIR\DJMIXEDPY\djstats.py"
-  Delete "$INSTDIR\DJMIXEDPY\djmixedcore.py"
+  Delete "$INSTDIR\ext\lib\dialog1\dialog1.xml"
+  Delete "$INSTDIR\ext\lib\dialog1\dialog1.properties"
+  Delete "$INSTDIR\ext\lib\djmixeddialog\djmixeddialog.xml"
+  Delete "$INSTDIR\ext\lib\djmixeddialog\djmixeddialog.properties"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\djmixedcomparison.spd"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\djmixeddialog.spd"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\_cephes.pyd"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\__init__.py"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\tw-set1d-spss.sav"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\syntax-in-paper.sps"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\README.txt"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\extension16.py"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\djstats.py"
+  Delete "$INSTDIR\extensions\DJMIXEDPY\djmixedcore.py"
 
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$ICONS_GROUP\Website.lnk"
 
   RMDir "$SMPROGRAMS\$ICONS_GROUP"
-  RMDir "$INSTDIR\extensions"
-  RMDir "$INSTDIR\ext\lib\.svn\text-base"
-  RMDir "$INSTDIR\ext\lib\.svn\prop-base"
-  RMDir "$INSTDIR\ext\lib\.svn"
-  RMDir "$INSTDIR\ext\lib"
-  RMDir "$INSTDIR\DJMIXEDPY"
+  RMDir "$INSTDIR\extensions\DJMIXEDPY"
+  RMDir "$INSTDIR\ext\lib\dialog1"
+  RMDir "$INSTDIR\ext\lib\djmixeddialog"
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   SetAutoClose true
