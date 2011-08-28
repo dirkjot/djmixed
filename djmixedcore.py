@@ -30,17 +30,15 @@
 # or shall i simply not bother?
 
 import spss, spssaux, extension16
-#import scipy.stats
 import djstats
 import textwrap
-import random, re
-#from numpy import bool_ as numpybool_
-# this is annoying but also unnecessary, do not require types!
+import random, re, os
 
-version = "$Revision: 41 $ at $Date$ - 220610c"
-version = version.replace('$','')
-print """Importing DJMIXED by Dirk P. Janssen, %s """ % version
-
+__author__ = "dirk p. janssen"
+__version__ = "$Id$: spam 41c 29Aug11 spam eggs ham".split()
+__version__ = "Revision: %s at %s" % (__version__[2], __version__[3]) 
+print """Importing DJMIXED by Dirk P. Janssen, %s """ % __version__
+print """Reading python files from """, os.path.abspath(__file__)
 
 
 # globals
@@ -469,7 +467,7 @@ def comparemodels(name1, name2):
       #if isinstance(comp, (bool, numpybool_)):
       # SHOOT numpy, it has its own bool variant
       #
-      # Lesson: do not check for type
+      # Lesson: do not check for type but ducktype with try/execpt
       if comp == True:
         return 'A'
       elif comp == False:
@@ -495,13 +493,14 @@ def comparemodels(name1, name2):
       cells =  cells )
 
     assumptions = footnote("""
-    Assumptions: Model A is nested within Model B, which makes Model B
-    a more complex model (more parameters).  Model A and Model B do
-    not only differ in random effects, use comparerandommodels in that
-    case.  The LRT (likelihood ratio test) evaluates the improved fit
+    Assumptions: 1/ Model A is nested within Model B, which makes Model B
+    a more complex model (more parameters).  2/ Model A and Model B do
+    not only differ in random effects (use 'comparerandommodels' for comparing
+    models that only differ in random effects).
+    The LRT (likelihood ratio test) evaluates the improved fit
     of Model B against the lower number of parameters of Model A and
     suggests which model is best based on a Chi-Squared test (with
-    alpha=%d).""" % alpha)
+    alpha=%f).""" % alpha)
     convwarn = mc.convergencetest()
     if convwarn:
        table.TitleFootnotes(str(convwarn) + '\n' + assumptions)
@@ -756,7 +755,7 @@ def mixedmodel(dv, predictors=None, pps=None, items=None,
   cmd.append("MIXED %s" % dv )
   if predictors and predictors!='None':
     if isinstance(predictors, str):
-      mainpredictors = predictors
+      predictors, mainpredictors = reparsepredictors(predictors.split())
     else:
       predictors, mainpredictors = reparsepredictors(predictors)
     if modeltype and modeltype.lower()=="fullfactorial":
@@ -1318,7 +1317,7 @@ def Runpy(subcommand, **argdict):
   except DjmixedFatal, e:
     print "=================================================================="
     print "An error occurred in DJMIXED"
-    print "[Version information: %s]" % version
+    print "[Version information: %s]" % __version__
     print e
     if DEBUG:
       print "------------------------------------------------------------------"
